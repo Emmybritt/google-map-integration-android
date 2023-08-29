@@ -1,5 +1,7 @@
 package com.example.googlemapintegration;
 
+import static androidx.constraintlayout.motion.utils.Oscillator.TAG;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -9,8 +11,10 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Toast;
 
+import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -22,8 +26,14 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
+import com.google.android.libraries.places.api.Places;
+import com.google.android.libraries.places.api.model.Place;
+import com.google.android.libraries.places.widget.AutocompleteSupportFragment;
+import com.google.android.libraries.places.widget.listener.PlaceSelectionListener;
+
+import java.util.Arrays;
+
+import kotlin.contracts.Returns;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
 
@@ -34,10 +44,42 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     LocationRequest locationRequest;
     LocationCallback locationCallback;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        Places.initialize(getApplicationContext(), "AIzaSyBOD5-j2ElNi1GuIbPEZntT1iNLHKassW4");
+
+        AutocompleteSupportFragment autocompleteFragment = (AutocompleteSupportFragment)
+                getSupportFragmentManager().findFragmentById(R.id.autocomplete_fragment);
+        autocompleteFragment.setPlaceFields(Arrays.asList(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG));
+
+        autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
+
+
+
+            @Override
+            public void onPlaceSelected(@NonNull Place place) {
+                // Handle the selected place.
+                Log.i(TAG, "Place: " + place.getName() + ", " + place.getId());
+            }
+
+            @Override
+            public void onError(@NonNull Status status) {
+                // Handle errors.
+                if (status == Status.RESULT_INTERNAL_ERROR) {
+                    // Handle network-related errors (e.g., no internet connection).
+                    Toast.makeText(MainActivity.this, "Network error. Check your internet connection.", Toast.LENGTH_SHORT).show();
+                } else if (status == Status.RESULT_TIMEOUT) {
+                    // Handle other errors.
+                    Toast.makeText(MainActivity.this, "An error occurred. Please try again later.", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+
 
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
         createLocationRequest();
@@ -68,13 +110,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void startLocationUpdates() {
         if (requestLocationPermission()) {
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                // TODO: Consider calling
-                //    ActivityCompat#requestPermissions
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for ActivityCompat#requestPermissions for more details.
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
                 return;
             }
@@ -103,13 +138,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         myMap = googleMap;
         if (requestLocationPermission()) {
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                // TODO: Consider calling
-                //    ActivityCompat#requestPermissions
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for ActivityCompat#requestPermissions for more details.
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
                 return;
             }
@@ -154,4 +182,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             myMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentCoordinate, 15)); // Adjust the zoom level as needed
         }
     }
+
+
 }
